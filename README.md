@@ -1,1 +1,1 @@
-# card-games
+# Master game folder
