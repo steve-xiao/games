@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1, shrink-to-fit=no,
+                 minimum-scale=1, maximum-scale=1">
+
+  <title>Coin Pusher</title>
+
+  <!-- Default love.js skin -->
+  <link rel="stylesheet" type="text/css" href="theme/love.css">
+
+  <!-- -----------------------------------------------------------------
+       Extra CSS: make overlays click-through, adjust footer position
+       ----------------------------------------------------------------- -->
+  <style>
+    /* Let mouse/touch fall through the loader, badge and hint */
+    #status,
+    footer,
+    #loadingCanvas     { pointer-events: none; }
+
+    /* Keep only the fullscreen button clickable */
+    footer button      { pointer-events: auto; }
+
+    /* Put the footer right under the game frame and inside 640-px width */
+    footer {
+      position: relative;      /* instead of fixed */
+      top: 4px;
+      margin: 0 auto;
+      width: 640px;
+      font-size: 12px;
+    }
+
+    /* Optional: move the love.js badge if you keep it */
+    #lovejs_link {
+      bottom: -20px;           /* 20 px below the canvas edge */
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+  <center>
+    <div>
+      <h1>Coin Pusher</h1>
+
+      <!-- Loader canvas (shows Preparing / Downloading text) -->
+      <canvas id="loadingCanvas"
+              oncontextmenu="event.preventDefault()"
+              width="640" height="360"></canvas>
+
+      <!-- Actual game canvas (initially hidden) -->
+      <canvas id="canvas"
+              oncontextmenu="event.preventDefault()"
+              width="640" height="360"
+              style="visibility:hidden"></canvas>
+    </div>
+  </center>
+
+  <script type="text/javascript">
+    /* ---------- helpers for fullscreen & resize ---------- */
+    function goFullScreen () {
+      var c = document.getElementById("canvas");
+      (c.requestFullscreen         ||
+       c.webkitRequestFullscreen   ||
+       c.mozRequestFullScreen      ||
+       c.msRequestFullscreen).call(c);
+    }
+    function FullScreenHook () {
+      var c = document.getElementById("canvas");
+      c.width  = window.innerWidth  || document.documentElement.clientWidth;
+      c.height = window.innerHeight || document.documentElement.clientHeight;
+    }
+
+    /* ---------- simple loading text on first canvas ---------- */
+    var loadingContext = document.getElementById('loadingCanvas').getContext('2d');
+    function drawLoadingText (text) {
+      var w = loadingContext.canvas.scrollWidth,
+          h = loadingContext.canvas.scrollHeight;
+
+      loadingContext.fillStyle = "rgb(142,195,227)";
+      loadingContext.fillRect(0,0,w,h);
+
+      loadingContext.font = '2em arial';
+      loadingContext.textAlign = 'center';
+      loadingContext.fillStyle = "rgb(11,86,117)";
+      loadingContext.fillText(text, w/2, h/2);
+      loadingContext.fillText("Powered by Emscripten", w/2, h/4);
+      loadingContext.fillText("Powered by LÖVE",        w/2, h/4*3);
+    }
+
+    /* ---------- prevent arrow-keys from scrolling page ---------- */
+    window.addEventListener("keydown", function (e) {
+      if ([32,37,38,39,40].indexOf(e.keyCode) > -1) { e.preventDefault(); }
+    }, false);
+
+    /* ---------- love.js bootstrapping ---------- */
+    var Module = {
+      arguments: ["./game.love"],
+      INITIAL_MEMORY: 16777216,
+      printErr: console.error.bind(console),
+      canvas: (function () {
+        var c = document.getElementById('canvas');
+        c.addEventListener("webglcontextlost", function (e) {
+          alert('WebGL context lost. Reload the page.'); e.preventDefault();
+        }, false);
+        return c;
+      })(),
+
+      /* progress status → show / hide loader canvas */
+      setStatus: function (text) {
+        if (text) {
+          drawLoadingText(text);
+        } else if (Module.remainingDependencies === 0) {
+          document.getElementById('loadingCanvas').style.display = 'none';
+          document.getElementById('canvas').style.visibility     = 'visible';
+        }
+      },
+
+      totalDependencies: 0,
+      remainingDependencies: 0,
+      monitorRunDependencies: function (left) {
+        this.remainingDependencies = left;
+        this.totalDependencies = Math.max(this.totalDependencies, left);
+        Module.setStatus(
+          left
+            ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')'
+            : 'All downloads complete.'
+        );
+      }
+    };
+    Module.setStatus('Downloading...');
+
+    window.onerror = function () {
+      Module.setStatus('Exception thrown, see console');
+    };
+
+    function applicationLoad () { Love(Module); }
+  </script>
+
+  <!-- game payload & engine -->
+  <script type="text/javascript" src="game.js"></script>
+  <script async type="text/javascript"
+          src="love.js" onload="applicationLoad(this)"></script>
+
+  <!-- footer badge / fullscreen button (now click-through for gameplay) -->
+  <footer>
+    <p>
+      Built with
+      <a id="lovejs_link" href="https://github.com/Davidobot/love.js">love.js</a>
+      <button onclick="goFullScreen()">Go Fullscreen</button><br>
+      Hint: Reload the page if screen is blank
+    </p>
+  </footer>
+</body>
+</html>
